@@ -33,8 +33,28 @@ export async function testUrl(url: string): Promise<{ ok: boolean; shopify: bool
     if (ok && isLikelyHtml(ct)) {
       bodyText = (await res.text()).slice(0, 20000) // limit
     }
-    const shopify = detectShopify(res.headers, bodyText)
+    let shopify = detectShopify(res.headers, bodyText)
     const finalUrl = res.url
+    // If not detected from headers/html, try probing Shopify-specific endpoints
+    if (!shopify && ok) {
+      try {
+        const origin = new URL(finalUrl).origin
+        // Probe cart.js (common on Shopify)
+        const cartRes = await httpFetch(origin + '/cart.js', { method: 'GET', headers: { accept: 'application/json' } })
+        if (cartRes.ok) {
+          const text = await cartRes.text()
+          if (/\{"token":|"items"\s*:\s*\[/.test(text)) shopify = true
+        }
+        // Probe products.json as fallback (not always enabled)
+        if (!shopify) {
+          const prodRes = await httpFetch(origin + '/products.json?limit=1', { method: 'GET', headers: { accept: 'application/json' } })
+          if (prodRes.ok) {
+            const txt = await prodRes.text()
+            if (/"products"\s*:\s*\[/.test(txt)) shopify = true
+          }
+        }
+      } catch {}
+    }
     return { ok, shopify, finalUrl }
   } catch {
     return null

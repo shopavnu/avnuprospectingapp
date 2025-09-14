@@ -10,6 +10,7 @@ import { isMillionVerifierEnabled, verifyWithMillionVerifier } from '@/lib/enric
 
 const BodySchema = z.object({
   limit: z.number().int().min(1).max(50).optional().default(15),
+  brandIds: z.array(z.string().min(1)).optional().default([]),
 })
 
 function originFrom(domainOrUrl: string): string {
@@ -23,10 +24,13 @@ const VERIFY_TTL_MS = 90 * DAY
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
-  const { limit } = BodySchema.parse(body)
+  const { limit, brandIds } = BodySchema.parse(body)
 
   const brands = await prisma.brand.findMany({
-    where: { domain: { not: null } },
+    where: {
+      domain: { not: null },
+      ...(brandIds && brandIds.length ? { id: { in: brandIds } } : {}),
+    },
     orderBy: { createdAt: 'asc' },
     take: limit,
     select: { id: true, name: true, domain: true },

@@ -8,19 +8,20 @@ import { computeBrandAggregate } from '@/lib/aggregate/brand'
 
 const BodySchema = z.object({
   limit: z.number().int().min(1).max(100).optional().default(25),
+  brandIds: z.array(z.string().min(1)).optional().default([]),
 })
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
-  const { limit } = BodySchema.parse(body)
+  const { limit, brandIds } = BodySchema.parse(body)
 
   // Find brands that have at least 1 product sample
   const brands = await prisma.brand.findMany({
     orderBy: { createdAt: 'asc' },
     take: limit,
-    where: {
-      products: { some: {} },
-    },
+    where: brandIds && brandIds.length
+      ? { id: { in: brandIds }, products: { some: {} } }
+      : { products: { some: {} } },
     select: { id: true, name: true },
   })
 

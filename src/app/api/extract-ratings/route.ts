@@ -10,15 +10,19 @@ import { extractProductRating } from '@/lib/parse/ratings'
 
 const BodySchema = z.object({
   limit: z.number().int().min(1).max(100).optional().default(50),
+  brandIds: z.array(z.string().min(1)).optional().default([]),
 })
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
-  const { limit } = BodySchema.parse(body)
+  const { limit, brandIds } = BodySchema.parse(body)
 
   // Pull products that have not yet been rated
   const products = await prisma.productSample.findMany({
-    where: { OR: [{ ratingValue: null }, { reviewCount: null }] },
+    where: {
+      OR: [{ ratingValue: null }, { reviewCount: null }],
+      ...(brandIds && brandIds.length ? { brandId: { in: brandIds } } : {}),
+    },
     orderBy: { fetchedAt: 'asc' },
     take: limit,
     select: { id: true, url: true, brandId: true, brand: { select: { domain: true } } },

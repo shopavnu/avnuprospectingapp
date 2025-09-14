@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Inter, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -26,10 +27,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${inter.variable} ${mono.variable} antialiased`}
-      >
-        {children}
+      <body className={`${inter.variable} ${mono.variable} antialiased`}>
+        <header className="sticky top-0 z-30 backdrop-blur border-b bg-[rgba(10,10,10,0.6)] text-[var(--foreground)]">
+          <div className="max-w-7xl mx-auto flex items-center gap-4 px-4 py-3">
+            <div className="font-semibold tracking-wide">
+              <span className="text-[var(--accent)]">◆</span> Product Ratings Snapshot
+            </div>
+            <nav className="flex items-center gap-3 text-sm">
+              <Link className="hover:text-[var(--accent)] transition-colors" href="/">Home</Link>
+              <Link className="hover:text-[var(--accent)] transition-colors" href="/upload">Upload</Link>
+              <Link className="hover:text-[var(--accent)] transition-colors" href="/run">Run</Link>
+              <Link className="hover:text-[var(--accent)] transition-colors" href="/results">Results</Link>
+            </nav>
+          </div>
+        </header>
+        <main>{children}</main>
       </body>
     </html>
   );

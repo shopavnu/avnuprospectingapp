@@ -8,15 +8,19 @@ import { getInstagramLastPost } from '@/lib/enrich/instagram'
 
 const BodySchema = z.object({
   limit: z.number().int().min(1).max(50).optional().default(20),
+  brandIds: z.array(z.string().min(1)).optional().default([]),
 })
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
-  const { limit } = BodySchema.parse(body)
+  const { limit, brandIds } = BodySchema.parse(body)
 
   // Brands with instagramUsername and not computed recently, or missing lastPostAt
   const brands = await prisma.brand.findMany({
-    where: { instagramUsername: { not: null } },
+    where: {
+      instagramUsername: { not: null },
+      ...(brandIds && brandIds.length ? { id: { in: brandIds } } : {}),
+    },
     orderBy: { createdAt: 'asc' },
     take: limit,
     select: {

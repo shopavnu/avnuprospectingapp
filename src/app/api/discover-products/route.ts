@@ -9,15 +9,19 @@ import { discoverProductUrls } from '@/lib/crawl/sitemaps'
 const BodySchema = z.object({
   limit: z.number().int().min(1).max(50).optional().default(10),
   maxPerBrand: z.number().int().min(1).max(50).optional().default(50),
+  brandIds: z.array(z.string().min(1)).optional().default([]),
 })
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
-  const { limit, maxPerBrand } = BodySchema.parse(body)
+  const { limit, maxPerBrand, brandIds } = BodySchema.parse(body)
 
   // Pull brands that have a domain and still need product discovery
   const brands = await prisma.brand.findMany({
-    where: { domain: { not: null } },
+    where: {
+      domain: { not: null },
+      ...(brandIds && brandIds.length ? { id: { in: brandIds } } : {}),
+    },
     orderBy: { createdAt: 'asc' },
     take: limit,
     select: { id: true, name: true, domain: true, _count: { select: { products: true } } },

@@ -10,6 +10,7 @@ import { parseReturnPolicy, parseShippingPolicy } from '@/lib/parse/policies'
 
 const BodySchema = z.object({
   limit: z.number().int().min(1).max(50).optional().default(15),
+  brandIds: z.array(z.string().min(1)).optional().default([]),
 })
 
 function originFrom(urlOrHost: string): string {
@@ -20,11 +21,14 @@ function originFrom(urlOrHost: string): string {
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
-  const { limit } = BodySchema.parse(body)
+  const { limit, brandIds } = BodySchema.parse(body)
 
   // Pick brands that have a domain and either no policy record or a record missing fields
   const brands = await prisma.brand.findMany({
-    where: { domain: { not: null } },
+    where: {
+      domain: { not: null },
+      ...(brandIds && brandIds.length ? { id: { in: brandIds } } : {}),
+    },
     orderBy: { createdAt: 'asc' },
     take: limit,
     select: {

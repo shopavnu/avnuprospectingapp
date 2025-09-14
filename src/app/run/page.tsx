@@ -26,6 +26,8 @@ export default function RunPage() {
   const [policiesLoading, setPoliciesLoading] = useState(false)
   const [igLoading, setIgLoading] = useState(false)
   const [emailsLoading, setEmailsLoading] = useState(false)
+  const [selected, setSelected] = useState<Record<string, boolean>>({})
+  const selectedIds = Object.entries(selected).filter(([, v]) => v).map(([k]) => k)
 
   async function refresh() {
     try {
@@ -49,7 +51,7 @@ export default function RunPage() {
       const res = await fetch('/api/enrich-emails', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ limit: 15 }),
+        body: JSON.stringify({ limit: 15, brandIds: selectedIds }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Email discovery failed')
@@ -69,7 +71,7 @@ export default function RunPage() {
       const res = await fetch('/api/enrich-instagram', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ limit: 20 }),
+        body: JSON.stringify({ limit: 20, brandIds: selectedIds }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Instagram failed')
@@ -89,7 +91,7 @@ export default function RunPage() {
       const res = await fetch('/api/policies', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ limit: 15 }),
+        body: JSON.stringify({ limit: 15, brandIds: selectedIds }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Policies failed')
@@ -109,7 +111,7 @@ export default function RunPage() {
       const res = await fetch('/api/aggregate-brands', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ limit: 25 }),
+        body: JSON.stringify({ limit: 25, brandIds: selectedIds }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Aggregate failed')
@@ -129,7 +131,7 @@ export default function RunPage() {
       const res = await fetch('/api/extract-ratings', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ limit: 50 }),
+        body: JSON.stringify({ limit: 50, brandIds: selectedIds }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Extract failed')
@@ -149,7 +151,7 @@ export default function RunPage() {
       const res = await fetch('/api/discover-products', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ limit: 10, maxPerBrand: 50 }),
+        body: JSON.stringify({ limit: 10, maxPerBrand: 50, brandIds: selectedIds }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Discovery failed')
@@ -169,7 +171,7 @@ export default function RunPage() {
       const res = await fetch('/api/resolve-domains', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ limit: 20 }),
+        body: JSON.stringify({ limit: 20, brandIds: selectedIds }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Resolve failed')
@@ -187,67 +189,81 @@ export default function RunPage() {
   }, [])
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">Run: Domain Resolution & Shopify Check</h1>
-      <p className="text-sm text-gray-600">This step normalizes domains, detects Shopify, caches robots.txt, and discovers product URLs.</p>
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <h1 className="text-2xl font-semibold">Run pipeline</h1>
+      <p className="text-sm text-muted-foreground">Select brands to control which actions run. If none selected, actions run against a new batch.</p>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-md border px-4 py-3 bg-[rgba(0,255,170,0.04)]">
         <button
           onClick={resolveDomains}
           disabled={loading}
-          className="bg-black text-white px-4 py-2 rounded disabled:opacity-50"
+          className="btn-primary disabled:opacity-50"
         >
           {loading ? 'Resolving…' : 'Resolve domains (20)'}
         </button>
         <button
           onClick={discoverProducts}
           disabled={discovering}
-          className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          className="btn-primary disabled:opacity-50"
         >
           {discovering ? 'Discovering…' : 'Discover products (10 brands)'}
         </button>
         <button
           onClick={extractRatings}
           disabled={extracting}
-          className="bg-emerald-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          className="btn-primary disabled:opacity-50"
         >
           {extracting ? 'Extracting…' : 'Extract ratings (50 products)'}
         </button>
         <button
           onClick={enrichInstagram}
           disabled={igLoading}
-          className="bg-pink-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          className="btn-primary disabled:opacity-50"
         >
           {igLoading ? 'Enriching…' : 'Enrich Instagram (20)'}
         </button>
         <button
           onClick={discoverEmails}
           disabled={emailsLoading}
-          className="bg-cyan-700 text-white px-4 py-2 rounded disabled:opacity-50"
+          className="btn-primary disabled:opacity-50"
         >
           {emailsLoading ? 'Discovering…' : 'Discover emails (15)'}
         </button>
         <button
           onClick={parsePolicies}
           disabled={policiesLoading}
-          className="bg-orange-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          className="btn-primary disabled:opacity-50"
         >
           {policiesLoading ? 'Parsing…' : 'Parse policies (15)'}
         </button>
         <button
           onClick={aggregateBrands}
           disabled={aggregating}
-          className="bg-purple-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          className="btn-primary disabled:opacity-50"
         >
           {aggregating ? 'Aggregating…' : 'Aggregate brands (25)'}
         </button>
-        <span className="text-sm text-gray-700">{log}</span>
+        <span className="ml-auto text-sm text-muted-foreground">{selectedIds.length} selected</span>
       </div>
+      <div className="text-sm text-amber-500">{log}</div>
 
       <div className="border rounded overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left">
+              <th className="py-2 px-3">
+                <input
+                  type="checkbox"
+                  aria-label="Select all"
+                  checked={brands.length > 0 && brands.every((b) => selected[b.id])}
+                  onChange={(e) => {
+                    const checked = e.currentTarget.checked
+                    const next: Record<string, boolean> = {}
+                    if (checked) brands.forEach((b) => (next[b.id] = true))
+                    setSelected(checked ? next : {})
+                  }}
+                />
+              </th>
               <th className="py-2 px-3">Brand</th>
               <th className="py-2 px-3">Domain</th>
               <th className="py-2 px-3">Products</th>
@@ -263,7 +279,15 @@ export default function RunPage() {
           </thead>
           <tbody>
             {brands.map((b) => (
-              <tr key={b.id} className="border-t">
+              <tr key={b.id} className="border-t hover:bg-[rgba(0,255,170,0.06)]">
+                <td className="py-2 px-3">
+                  <input
+                    type="checkbox"
+                    checked={!!selected[b.id]}
+                    onChange={(e) => setSelected((prev) => ({ ...prev, [b.id]: e.currentTarget.checked }))}
+                    aria-label={`Select ${b.name}`}
+                  />
+                </td>
                 <td className="py-2 px-3">{b.name}</td>
                 <td className="py-2 px-3">{b.domain || ''}</td>
                 <td className="py-2 px-3">{(b as any)._count?.products ?? 0}</td>

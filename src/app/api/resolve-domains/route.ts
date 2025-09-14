@@ -9,6 +9,7 @@ import { getRobotsForDomain } from '@/lib/crawl/robots'
 
 const BodySchema = z.object({
   limit: z.number().int().min(1).max(100).optional().default(20),
+  brandIds: z.array(z.string().min(1)).optional().default([]),
 })
 
 function originFromUrl(url: string): string | null {
@@ -22,11 +23,11 @@ function originFromUrl(url: string): string | null {
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
-  const { limit } = BodySchema.parse(body)
+  const { limit, brandIds } = BodySchema.parse(body)
 
   // Fetch a batch of pending brands (or with unknown shopifyDetected)
   const brands = await prisma.brand.findMany({
-    where: { status: 'pending' },
+    where: brandIds && brandIds.length ? { id: { in: brandIds } } : { status: 'pending' },
     orderBy: { createdAt: 'asc' },
     take: limit,
   })
