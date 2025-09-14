@@ -1,3 +1,4 @@
+import '@/server/polyfills'
 import { PrismaClient } from '@/generated/prisma'
 
 // Ensure a single Prisma instance in dev to avoid hot-reload connection issues
