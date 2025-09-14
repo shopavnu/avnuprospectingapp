@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Brand {
+  id                  String            @id @default(cuid())
+  name                String
+  domain              String?
+  status              BrandStatus       @default(pending)
+  notes               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  shopifyDetected     Boolean?
+
+  // Instagram enrichment
+  instagramUsername   String?
+  instagramLastPostAt DateTime?
+  instagramActive30d  Boolean           @default(false)
+  instagramSource     String?
+  instagramError      String?
+
+  // Optional brand-level query override for SERP enrichment
+  googleBrandQuery    String?
+
+  products            ProductSample[]
+  aggregate           BrandAggregate?
+  policy              PolicySnapshot?
+  reputation          ReputationSnapshot?
+  contactEmails       ContactEmail[]
+}
+
+model ProductSample {
+  id           String   @id @default(cuid())
+  brandId      String
+  url          String   @unique
+  title        String?
+  ratingValue  Float?
+  reviewCount  Int?
+  widget       Widget?
+  source       Source
+  rawEvidence  String?
+  fetchedAt    DateTime @default(now())
+
+  brand        Brand    @relation(fields: [brandId], references: [id])
+
+  @@index([brandId])
+}
+
+model BrandAggregate {
+  brandId            String   @id
+  productCount       Int
+  sumReviewCount     Int
+  weightedAvgRating  Float?
+  simpleAvgRating    Float?
+  medianRating       Float?
+  minRating          Float?
+  maxRating          Float?
+  sampleCoverage     Float?
+  computedAt         DateTime @default(now())
+
+  brand              Brand    @relation(fields: [brandId], references: [id])
+}
+
+model PolicySnapshot {
+  id                    String   @id @default(cuid())
+  brandId               String   @unique
+  returnPolicyUrl       String?
+  returnWindowDays      Int?
+  shippingPolicyUrl     String?
+  shippingFree          Boolean?
+  shippingAlwaysFree    Boolean?
+  shippingFreeThreshold Float?
+  shippingCurrency      String?
+  notes                 String?
+  evidence              String?
+  computedAt            DateTime @default(now())
+
+  brand                 Brand    @relation(fields: [brandId], references: [id])
+}
+
+model ReputationSnapshot {
+  id         String   @id @default(cuid())
+  brandId    String   @unique
+  provider   String   // e.g., 'google_kp'
+  rating     Float?
+  reviewsCount Int?
+  sourceUrl  String?
+  fetchedAt  DateTime @default(now())
+
+  brand      Brand    @relation(fields: [brandId], references: [id])
+}
+
+model ContactEmail {
+  id                 String   @id @default(cuid())
+  brandId            String
+  address            String
+  type               String   // 'personal' | 'generic'
+  sourceUrl          String?
+  verifiedSyntax     Boolean  @default(false)
+  verifiedMx         Boolean  @default(false)
+  verifiedService    String?
+  verificationStatus String?  // 'valid' | 'risky' | 'invalid' | 'unknown' | 'catch_all' | 'disposable'
+  verificationScore  Float?
+  verifiedAt         DateTime?
+  evidence           String?
+  createdAt          DateTime @default(now())
+
+  brand              Brand    @relation(fields: [brandId], references: [id])
+
+  @@index([brandId])
+}
+
+enum BrandStatus {
+  pending
+  processing
+  done
+  error
+}
+
+enum Widget {
+  yotpo
+  judgeme
+  okendo
+  stamped
+  none
+  unknown
+}
+
+enum Source {
+  jsonld
+  widget
+  dom
+}
+
+model RobotsCache {
+  id        String   @id @default(cuid())
+  domain    String   @unique
+  content   String
+  fetchedAt DateTime @default(now())
+}
